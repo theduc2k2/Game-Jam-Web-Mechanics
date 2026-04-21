@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortal Engines 3D: Vanguard - Transformer City</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: #050505;
+            color: #c29958;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .health-bar {
+            width: 250px;
+            height: 12px;
+            background: rgba(40, 30, 20, 0.8);
+            border: 1px solid #c29958;
+            padding: 2px;
+        }
+
+        #health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #8b0000, #ff4500, #ffcc00);
+            box-shadow: 0 0 15px #ff4500;
+            transition: width 0.3s ease;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 5, 0, 0.9);
+            border: 1px solid #c29958;
+            padding: 8px 20px;
+            font-size: 0.75rem;
+            color: #c29958;
+            letter-spacing: 1px;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(194, 153, 88, 0.3);
+            text-align: center;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 20;
+            background: rgba(10, 0, 0, 0.9);
+            padding: 50px;
+            border: 2px solid #ff4500;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(255, 69, 0, 0.5);
+        }
+
+        #build-ui {
+            display: none;
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 10, 5, 0.95);
+            z-index: 30;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 2px solid #c29958;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(194, 153, 88, 0.2);
+        }
+
+        .shop-item {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shop-item:hover {
+            transform: translateY(-5px);
+            background-color: #2a2a2a;
+        }
+
+        .shop-item.selected {
+            border-color: #ffcc00 !important;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+        }
+
+        #build-overlay-text {
+            display: none;
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 25;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.8);
+            pointer-events: none;
+            text-align: center;
+        }
+
+        #mode-status {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            color: #00ffff;
+            transition: color 0.3s;
+        }
+
+        .mode-siege {
+            color: #ff3300 !important;
+            text-shadow: 0 0 10px rgba(255, 50, 0, 0.8) !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="hud">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 border-2 border-amber-500 flex items-center justify-center font-bold text-amber-400 bg-amber-900/40"
+                style="box-shadow: 0 0 10px rgba(245, 158, 11, 0.5)">V3</div>
+            <div>
+                <h1 class="text-lg font-bold text-amber-500 leading-none"
+                    style="text-shadow: 0 0 8px rgba(245, 158, 11, 0.5)">VANGUARD PLATFORM</h1>
+                <div id="mode-status">MODE: MOBILE (DI CHUYỂN)</div>
+            </div>
+        </div>
+        <div class="health-bar">
+            <div id="health-fill"></div>
+        </div>
+        <div class="text-xs text-amber-500 mt-1">HP: <span id="hp-val">100</span>/<span id="max-hp-val">100</span></div>
+
+        <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <span class="text-[10px] text-amber-800 font-bold">RIVAL CITIES SHREDDED</span>
+                <span class="text-sm font-bold text-white"><span id="kills">0</span> UNITS</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[10px] text-amber-800 font-bold">DRONES ACTIVE</span>
+                <span class="text-sm font-bold text-cyan-400"><span id="drones-val">0</span> / 3</span>
+            </div>
+            <div class="flex flex-col col-span-2">
+                <span class="text-[10px] text-amber-800 font-bold">TRAVEL DISTANCE</span>
+                <span class="text-sm font-bold text-white"><span id="score">0</span> KM</span>
+            </div>
+            <div class="flex flex-col col-span-2">
+                <span class="text-[10px] text-amber-800 font-bold">SCRAP (RESOURCES)</span>
+                <span class="text-2xl font-bold text-yellow-400"
+                    style="text-shadow: 0 0 10px rgba(250, 204, 21, 0.5)"><span id="scrap-val">60</span> ⚙️</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="vignette"></div>
+    <div class="controls-hint">
+        WASD: LÁI XE TĂNG TỐC | <span class="text-cyan-400 font-bold drop-shadow-md">[F]: BIẾN HÌNH CĂN CỨ</span> |
+        <span class="text-yellow-400 font-bold drop-shadow-md">[B]: LẮP RÁP 3D</span>
+    </div>
+
+    <div id="build-overlay-text">
+        ENGINEERING MODE<br>
+        <span class="text-sm text-zinc-100 font-normal">Click vào ô màu xanh lá để lắp đặt vũ khí/giáp</span>
+    </div>
+
+    <div id="build-ui">
+        <div class="text-xl font-bold text-yellow-400 mb-4 drop-shadow-lg">
+            SCRAP HIỆN CÓ: <span id="ui-scrap-val">60</span> ⚙️
+        </div>
+
+        <div class="flex gap-4" id="shop-container">
+            <div onclick="selectShopItem('machine_gun')" id="shop-machine_gun"
+                class="shop-item bg-zinc-900 border-2 border-zinc-700 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🔫</div>
+                <div class="text-sm font-bold text-white">Tháp Súng</div>
+                <div class="text-xs text-yellow-400 mt-1 font-bold">15 Scrap</div>
+                <div class="text-[10px] text-cyan-400 mt-1">Khóa mục tiêu nhanh</div>
+            </div>
+            <div onclick="selectShopItem('missile')" id="shop-missile"
+                class="shop-item bg-zinc-900 border-2 border-zinc-700 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🚀</div>
+                <div class="text-sm font-bold text-white">Bệ Tên Lửa</div>
+                <div class="text-xs text-yellow-400 mt-1 font-bold">30 Scrap</div>
+                <div class="text-[10px] text-red-400 mt-1">Sát thương bùng nổ</div>
+            </div>
+            <div onclick="selectShopItem('armor')" id="shop-armor"
+                class="shop-item bg-zinc-900 border-2 border-zinc-700 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🛡️</div>
+                <div class="text-sm font-bold text-white">Khối Giáp</div>
+                <div class="text-xs text-yellow-400 mt-1 font-bold">10 Scrap</div>
+                <div class="text-[10px] text-green-400 mt-1">+20 Máu Tối đa</div>
+            </div>
+            <div onclick="selectShopItem('remove')" id="shop-remove"
+                class="shop-item bg-red-950 border-2 border-red-800 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🗑️</div>
+                <div class="text-sm font-bold text-red-400">Tháo Dỡ</div>
+                <div class="text-[10px] text-zinc-400 mt-1">Hoàn lại 50% Scrap</div>
+            </div>
+        </div>
+
+        <button onclick="window.toggleBuildMode()"
+            class="mt-6 px-10 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded shadow-lg border-2 border-amber-400 transition"
+            style="box-shadow: 0 0 15px rgba(245, 158, 11, 0.4)">
+            [B] LƯU & CHIẾN ĐẤU
+        </button>
+    </div>
+
+    <div id="game-over">
+        <h2 class="text-5xl font-bold text-red-600 mb-2" style="text-shadow: 0 0 20px red">VANGUARD DESTROYED</h2>
+        <p class="text-xl text-white mb-4">Mạng lưới phòng thủ thất bại.</p>
+        <p class="text-sm text-zinc-400 animate-pulse">Nhấn [R] để tái khởi động hệ thống</p>
+    </div>
+
+    <div id="game-canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        let scene, camera, renderer, composer;
+        let playerGroup, playerBody;
+        let deckGroup;
+        let activeTurrets = [];
+        let enemies = [];
+        let bullets = [];
+        let particles = [];
+        let dustTrailParticles = [];
+        let lasers = [];
+        let environmentGroup;
+        let gridHelper;
+
+        // --- HỆ THỐNG GRID MỚI (CHỨA THÁP THỦY LỰC) ---
+        let buildPlanes = []; // Thay thế cho Group cũ để dễ quản lý Click
+        const buildPlanesMap = new Map();
+
+        let harvestables = [];
+        let droppedScraps = [];
+        let activeDrones = [];
+        const MAX_DRONES = 3;
+
+        let isStationary = false;
+        let deployProgress = 0;
+
+        // --- CƠ CHẾ VẬT LÝ XE TĂNG MỚI (ACCELERATION & FRICTION) ---
+        let velocity = new THREE.Vector3(0, 0, 0);
+        const acceleration = 0.035;
+        const friction = 0.94; // Lực cản
+        const maxSpeed = 0.75;
+
+        let sunLight, hemiLight, headLight, deckLight;
+        let gameTime = Math.PI / 4;
+
+        const colorDay = new THREE.Color(0x87CEEB);
+        const colorNight = new THREE.Color(0x050510);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let hoveredPlane = null;
+
+        let score = 0;
+        let kills = 0;
+        let scrap = 150; // Cho nhiều chút ban đầu để bạn dễ test xây tháp
+        let playerHealth = 100;
+        let maxHealth = 100;
+        let baseMaxHealth = 100;
+        let gameOver = false;
+        let isBuildMode = false;
+
+        let buildGridData = [
+            [null, 'machine_gun', null],
+            ['armor', null, 'armor'],
+            [null, null, null]
+        ];
+        let selectedShopItem = null;
+
+        const ITEMS = {
+            'machine_gun': { cost: 15 },
+            'missile': { cost: 30 },
+            'armor': { cost: 10 }
+        };
+
+        const keys = { w: false, a: false, s: false, d: false };
+
+        const healthFill = document.getElementById('health-fill');
+        const hpValEl = document.getElementById('hp-val');
+        const maxHpValEl = document.getElementById('max-hp-val');
+        const scoreEl = document.getElementById('score');
+        const killsEl = document.getElementById('kills');
+        const scrapEl = document.getElementById('scrap-val');
+        const dronesValEl = document.getElementById('drones-val');
+        const modeStatusEl = document.getElementById('mode-status');
+        const gameOverScreen = document.getElementById('game-over');
+        const buildUI = document.getElementById('build-ui');
+        const buildOverlayText = document.getElementById('build-overlay-text');
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = colorDay.clone();
+            scene.fog = new THREE.Fog(colorDay.clone(), 120, 350);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 45, 40);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            document.getElementById('game-canvas-container').appendChild(renderer.domElement);
+
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.95);
+            bloomPass.threshold = 0.90;
+            bloomPass.strength = 0.8;
+            bloomPass.radius = 0.5;
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            hemiLight = new THREE.HemisphereLight(0xffffff, 0x445544, 0.6);
+            scene.add(hemiLight);
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 300;
+            const d = 80;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            sunLight.shadow.bias = -0.0005;
+            scene.add(sunLight);
+            scene.add(sunLight.target);
+
+            createEnvironment();
+            createPlayer();
+
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+            window.selectShopItem('machine_gun');
+
+            calculateStats();
+            animate();
+            setInterval(spawnEnemy, 3500);
+
+            document.getElementById('ui-scrap-val').innerText = scrap;
+            scrapEl.innerText = scrap;
+        }
+
+        function toggleCityMode() {
+            if (isBuildMode || gameOver) return;
+
+            isStationary = !isStationary;
+            if (isStationary) {
+                modeStatusEl.innerText = "MODE: SIEGE (CẮM TRẠI & KHAI THÁC)";
+                modeStatusEl.classList.add('mode-siege');
+                createExplosion(playerGroup.position, 0x8f7a66);
+
+                maxHealth += 150;
+                playerHealth += 150;
+            } else {
+                modeStatusEl.innerText = "MODE: MOBILE (DI CHUYỂN)";
+                modeStatusEl.classList.remove('mode-siege');
+                createExplosion(playerGroup.position, 0x8f7a66);
+
+                activeDrones.forEach(d => {
+                    d.state = 'returning';
+                    if (d.target) d.target.targeted = false;
+                    if (d.laserLine) scene.remove(d.laserLine);
+                });
+
+                maxHealth -= 150;
+                playerHealth = Math.min(playerHealth, maxHealth);
+            }
+            updateHUD();
+        }
+
+        window.toggleBuildMode = function () {
+            isBuildMode = !isBuildMode;
+            if (isBuildMode) {
+                buildUI.style.display = 'flex';
+                buildOverlayText.style.display = 'block';
+                document.getElementById('ui-scrap-val').innerText = scrap;
+
+                // Bật lưới Hologram
+                buildPlanes.forEach(p => p.visible = true);
+
+                camera.position.set(playerGroup.position.x, playerGroup.position.y + 25, playerGroup.position.z + 15);
+                camera.lookAt(playerGroup.position);
+            } else {
+                buildUI.style.display = 'none';
+                buildOverlayText.style.display = 'none';
+                buildPlanes.forEach(p => p.visible = false);
+            }
+        };
+
+        window.selectShopItem = function (itemId) {
+            selectedShopItem = itemId;
+            document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`shop-${itemId}`).classList.add('selected');
+        };
+
+        function onPointerMove(event) {
+            if (!isBuildMode) return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(buildPlanes);
+
+            if (hoveredPlane) {
+                hoveredPlane.material.color.setHex(0x00ffcc);
+                hoveredPlane.material.opacity = 0.15;
+            }
+            if (intersects.length > 0) {
+                hoveredPlane = intersects[0].object;
+                hoveredPlane.material.color.setHex(0xffffff);
+                hoveredPlane.material.opacity = 0.5;
+            } else {
+                hoveredPlane = null;
+            }
+        }
+
+        function onPointerDown(event) {
+            if (!isBuildMode || !selectedShopItem || !hoveredPlane) return;
+
+            const gridCoords = buildPlanesMap.get(hoveredPlane.uuid);
+            const x = gridCoords.x;
+            const y = gridCoords.y;
+
+            if (selectedShopItem === 'remove') {
+                if (buildGridData[y][x]) {
+                    scrap += Math.floor(ITEMS[buildGridData[y][x]].cost / 2);
+                    buildGridData[y][x] = null;
+                    document.getElementById('ui-scrap-val').innerText = scrap;
+                    rebuildTurret3D();
+                    calculateStats();
+                }
+                return;
+            }
+
+            const itemConfig = ITEMS[selectedShopItem];
+            if (scrap >= itemConfig.cost) {
+                if (buildGridData[y][x]) {
+                    scrap += Math.floor(ITEMS[buildGridData[y][x]].cost / 2);
+                }
+                scrap -= itemConfig.cost;
+                buildGridData[y][x] = selectedShopItem;
+
+                document.getElementById('ui-scrap-val').innerText = scrap;
+                rebuildTurret3D();
+                calculateStats();
+            }
+        }
+
+        function calculateStats() {
+            let armors = 0;
+            for (let y = 0; y < 3; y++) {
+                for (let x = 0; x < 3; x++) {
+                    if (buildGridData[y][x] === 'armor') armors++;
+                }
+            }
+            baseMaxHealth = 100 + (armors * 20);
+            maxHealth = baseMaxHealth + (isStationary ? 150 : 0);
+            playerHealth = Math.min(playerHealth, maxHealth);
+            updateHUD();
+        }
+
+        function disposeObject(obj) {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                else obj.material.dispose();
+            }
+        }
+
+        function safeRemove(entity, arr) {
+            if (!entity) return;
+            if (entity.parent) entity.parent.remove(entity);
+            else scene.remove(entity);
+
+            if (arr) {
+                const index = arr.indexOf(entity);
+                if (index > -1) arr.splice(index, 1);
+            }
+            entity.traverse((child) => {
+                if (child.isMesh) disposeObject(child);
+            });
+        }
+
+        function createEnvironment() {
+            const groundGeo = new THREE.PlaneGeometry(2000, 2000);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x7cb35c, roughness: 1.0, metalness: 0.0 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            gridHelper = new THREE.GridHelper(2000, 100, 0x669944, 0x669944);
+            gridHelper.position.y = 0.1;
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.3;
+            scene.add(gridHelper);
+
+            environmentGroup = new THREE.Group();
+
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4c3a, roughness: 0.9 });
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x3d6e4b, roughness: 0.8 });
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x7a8276, roughness: 0.9 });
+
+            for (let i = 0; i < 150; i++) {
+                const isTree = Math.random() > 0.3;
+                let harvestObj;
+
+                if (isTree) {
+                    const treeGroup = new THREE.Group();
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 2, 6), trunkMat);
+                    trunk.position.y = 1;
+                    trunk.castShadow = true;
+                    trunk.receiveShadow = true;
+
+                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.5, 5, 6), leavesMat);
+                    leaves.position.y = 4.5;
+                    leaves.castShadow = true;
+                    leaves.receiveShadow = true;
+
+                    treeGroup.add(trunk, leaves);
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 20 + Math.random() * 400;
+                    treeGroup.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+                    treeGroup.rotation.y = Math.random() * Math.PI;
+                    const scale = 0.8 + Math.random() * 0.6;
+                    treeGroup.scale.set(scale, scale, scale);
+
+                    harvestObj = treeGroup;
+                    harvestObj.type = 'tree';
+                    harvestObj.health = 30;
+                    harvestObj.value = 5;
+                } else {
+                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(Math.random() * 2 + 1, 0), rockMat);
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 20 + Math.random() * 400;
+                    rock.position.set(Math.cos(angle) * radius, Math.random(), Math.sin(angle) * radius);
+                    rock.rotation.set(Math.random(), Math.random(), Math.random());
+                    rock.castShadow = true;
+                    rock.receiveShadow = true;
+
+                    harvestObj = rock;
+                    harvestObj.type = 'rock';
+                    harvestObj.health = 50;
+                    harvestObj.value = 10;
+                }
+
+                harvestObj.isHarvestable = true;
+                harvestObj.targeted = false;
+
+                environmentGroup.add(harvestObj);
+                harvestables.push(harvestObj);
+            }
+            scene.add(environmentGroup);
+        }
+
+        // --- CẤU TRÚC TRANSFORMER ---
+        function createPlayer() {
+            playerGroup = new THREE.Group();
+            playerBody = new THREE.Group();
+            playerGroup.add(playerBody);
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc97a4e, roughness: 0.8, metalness: 0.2 });
+            const mechMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.9, metalness: 0.5 });
+
+            // 1. Thân lõi trung tâm
+            const mainHull = new THREE.Mesh(new THREE.BoxGeometry(4.6, 1.2, 4.6), bodyMat);
+            mainHull.position.y = 1.0;
+            mainHull.castShadow = true; mainHull.receiveShadow = true;
+            playerBody.add(mainHull);
+
+            // 2. Nhóm Bánh xích có thể Xoay gập (Transformer)
+            const treadLGroup = new THREE.Group();
+            treadLGroup.position.set(-2.3, 0.75, 0); // Pivot xoay ở mép
+            const treadRGroup = new THREE.Group();
+            treadRGroup.position.set(2.3, 0.75, 0);
+
+            const treadGeo = new THREE.BoxGeometry(1.2, 1.5, 6.0);
+            const treadL = new THREE.Mesh(treadGeo, mechMat);
+            treadL.position.set(-0.6, 0, 0); // Offset ra ngoài tâm pivot
+            treadL.castShadow = true;
+            treadLGroup.add(treadL);
+
+            const treadR = new THREE.Mesh(treadGeo, mechMat);
+            treadR.position.set(0.6, 0, 0);
+            treadR.castShadow = true;
+            treadRGroup.add(treadR);
+            playerBody.add(treadLGroup, treadRGroup);
+
+            // 3. Tấm khiên/Cửa dốc trước sau
+            const shieldFGroup = new THREE.Group();
+            shieldFGroup.position.set(0, 1.5, -2.3); // Pivot ở mũi
+            const shieldF = new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.0, 0.4), mechMat);
+            shieldF.position.set(0, -0.5, -0.2);
+            shieldF.castShadow = true;
+            shieldFGroup.add(shieldF);
+
+            const shieldBGroup = new THREE.Group();
+            shieldBGroup.position.set(0, 1.5, 2.3); // Pivot ở đuôi
+            const shieldB = new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.0, 0.4), mechMat);
+            shieldB.position.set(0, -0.5, 0.2);
+            shieldB.castShadow = true;
+            shieldBGroup.add(shieldB);
+            playerBody.add(shieldFGroup, shieldBGroup);
+
+            // Lõi động cơ
+            const engineGeo = new THREE.BoxGeometry(1.5, 0.5, 0.2);
+            const engineMat = new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xff3300, emissiveIntensity: 2.0 });
+            const engine = new THREE.Mesh(engineGeo, engineMat);
+            engine.position.set(0, 0, -2.4);
+            mainHull.add(engine);
+
+            // Đèn pha
+            headLight = new THREE.SpotLight(0xffeedd, 0);
+            headLight.position.set(0, 2, 2.5);
+            headLight.target.position.set(0, 0, 50);
+            headLight.angle = Math.PI / 4;
+            headLight.penumbra = 0.5;
+            headLight.distance = 150;
+            headLight.castShadow = true;
+            playerBody.add(headLight);
+            playerBody.add(headLight.target);
+
+            // Đèn boong
+            deckLight = new THREE.PointLight(0xffeedd, 0, 25);
+            deckLight.position.set(0, 6, 0);
+            playerBody.add(deckLight);
+
+            // 4. Các bệ nâng súng (Hydraulic Platforms)
+            deckGroup = new THREE.Group();
+            deckGroup.position.set(0, 1.6, 0);
+            playerBody.add(deckGroup);
+
+            playerGroup.platforms = [];
+            const spacing = 1.4;
+            const planeMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+
+            for (let y = 0; y < 3; y++) {
+                for (let x = 0; x < 3; x++) {
+                    const px = (x - 1) * spacing;
+                    const pz = (y - 1) * spacing;
+
+                    const platGroup = new THREE.Group();
+                    platGroup.position.set(px, 0, pz);
+                    deckGroup.add(platGroup);
+
+                    // Trụ thủy lực nâng tháp (Ban đầu ẩn/thấp)
+                    const pillarGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.0, 8);
+                    pillarGeo.translate(0, -0.5, 0); // Scale từ đáy lên
+                    const pillar = new THREE.Mesh(pillarGeo, mechMat);
+                    pillar.position.y = 0;
+                    platGroup.add(pillar);
+
+                    // Tấm nền bọc giáp
+                    const pad = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 1.2), bodyMat);
+                    pad.position.y = 0.1;
+                    pad.castShadow = true; pad.receiveShadow = true;
+                    platGroup.add(pad);
+
+                    // Tấm Hologram để Click xây dựng (Đi theo Pad)
+                    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), planeMat.clone());
+                    plane.rotation.x = -Math.PI / 2;
+                    plane.position.set(0, 0.25, 0);
+                    plane.visible = false;
+                    platGroup.add(plane);
+
+                    buildPlanes.push(plane);
+                    buildPlanesMap.set(plane.uuid, { x, y });
+
+                    // Tính độ cao tháp theo vị trí để tạo Skyline đẹp
+                    let distFromCenter = Math.abs(x - 1) + Math.abs(y - 1);
+                    let tHeight = 0;
+                    if (distFromCenter === 0) tHeight = 3.5; // Tháp giữa cao nhất
+                    else if (distFromCenter === 1) tHeight = 2.0; // Hình chữ thập cao vừa
+                    else tHeight = 1.0; // Bốn góc thấp
+
+                    playerGroup.platforms.push({
+                        group: platGroup,
+                        pillar: pillar,
+                        pad: pad,
+                        plane: plane,
+                        gridX: x,
+                        gridY: y,
+                        baseHeight: 0,
+                        targetHeight: tHeight,
+                        hasItem: false
+                    });
+                }
+            }
+
+            playerGroup.parts = { mainHull, treadLGroup, treadRGroup, shieldFGroup, shieldBGroup, engine };
+
+            scene.add(playerGroup);
+            rebuildTurret3D();
+        }
+
+        // --- CẬP NHẬT SÚNG VÀO CÁC THÁP (TOWERS) ---
+        function rebuildTurret3D() {
+            activeTurrets = [];
+
+            // Xóa rác, chừa lại kết cấu khung (Pillar, Pad, Plane)
+            playerGroup.platforms.forEach(p => {
+                const toRemove = [];
+                p.group.children.forEach(child => {
+                    if (child !== p.pillar && child !== p.pad && child !== p.plane) {
+                        toRemove.push(child);
+                    }
+                });
+                toRemove.forEach(child => {
+                    p.group.remove(child);
+                    child.traverse(c => { if (c.isMesh) disposeObject(c); });
+                });
+                p.hasItem = false;
+            });
+
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x9ca3a8, roughness: 0.5, metalness: 0.6 });
+            const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x646e73, roughness: 0.7, metalness: 0.5 });
+            const missilePodMat = new THREE.MeshStandardMaterial({ color: 0xba3c3c, roughness: 0.4, metalness: 0.2 });
+
+            for (let y = 0; y < 3; y++) {
+                for (let x = 0; x < 3; x++) {
+                    const item = buildGridData[y][x];
+                    if (!item) continue;
+
+                    const platInfo = playerGroup.platforms.find(p => p.gridX === x && p.gridY === y);
+                    platInfo.hasItem = true;
+
+                    if (item === 'armor') {
+                        const armor = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 1.2), metalMat);
+                        armor.position.set(0, 0.7, 0); // Nằm trên pad
+                        armor.castShadow = true;
+                        platInfo.group.add(armor);
+                    }
+                    else {
+                        const turretGroup = new THREE.Group();
+                        turretGroup.position.set(0, 0.4, 0);
+
+                        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.4, 16), darkMetalMat);
+                        base.castShadow = true;
+                        turretGroup.add(base);
+
+                        if (item === 'machine_gun') {
+                            const gunGeo = new THREE.BoxGeometry(0.15, 0.15, 1.0);
+                            const gun1 = new THREE.Mesh(gunGeo, metalMat);
+                            gun1.position.set(-0.2, 0.4, 0.4);
+                            gun1.castShadow = true;
+
+                            const gun2 = new THREE.Mesh(gunGeo, metalMat);
+                            gun2.position.set(0.2, 0.4, 0.4);
+                            gun2.castShadow = true;
+                            turretGroup.add(gun1, gun2);
+                        } else if (item === 'missile') {
+                            const pod = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.8), missilePodMat);
+                            pod.position.set(0, 0.5, 0.2);
+                            pod.castShadow = true;
+                            turretGroup.add(pod);
+                        }
+
+                        platInfo.group.add(turretGroup);
+
+                        activeTurrets.push({
+                            mesh: turretGroup,
+                            type: item,
+                            lastShotTime: Date.now() + Math.random() * 500
+                        });
+                    }
+                }
+            }
+        }
+
+        function spawnEnemy() {
+            if (gameOver || isBuildMode) return;
+            if (enemies.length > 6) return;
+
+            const rivalGroup = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x823232, roughness: 0.8, metalness: 0.3 });
+            const detailMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.5, 4.5), bodyMat);
+            body.position.y = 0.8;
+            body.castShadow = true;
+            rivalGroup.add(body);
+
+            const treadL = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 5.0), detailMat);
+            treadL.position.set(-2.0, 0.6, 0);
+            treadL.castShadow = true;
+            const treadR = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 5.0), detailMat);
+            treadR.position.set(2.0, 0.6, 0);
+            treadR.castShadow = true;
+            rivalGroup.add(treadL, treadR);
+
+            const eyeGeo = new THREE.BoxGeometry(1.5, 0.2, 0.1);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xff0000, emissiveIntensity: 1.0 });
+            const eye = new THREE.Mesh(eyeGeo, eyeMat);
+            eye.position.set(0, 1.2, 2.3);
+            rivalGroup.add(eye);
+            rivalGroup.eyeMat = eyeMat;
+
+            rivalGroup.turrets = [];
+            const turretGroup = new THREE.Group();
+            turretGroup.position.set(0, 1.8, 0);
+
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 0.6, 8), detailMat);
+            base.castShadow = true;
+            turretGroup.add(base);
+
+            const cannon = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.8), detailMat);
+            cannon.position.set(0, 0.5, 0.8);
+            cannon.castShadow = true;
+            turretGroup.add(cannon);
+
+            rivalGroup.add(turretGroup);
+            rivalGroup.turrets.push({
+                mesh: turretGroup,
+                lastShotTime: Date.now() + Math.random() * 2000
+            });
+
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 120 + Math.random() * 60;
+            rivalGroup.position.set(
+                playerGroup.position.x + Math.cos(angle) * radius,
+                0,
+                playerGroup.position.z + Math.sin(angle) * radius
+            );
+
+            rivalGroup.health = 150;
+            // Vận tốc cho xe địch cũng phải tuân theo hệ thống logic
+            rivalGroup.speed = Math.random() * 0.15 + 0.15;
+            rivalGroup.state = 'wander';
+            rivalGroup.targetAngle = Math.random() * Math.PI * 2;
+            rivalGroup.changeDirTime = Date.now() + Math.random() * 5000;
+
+            scene.add(rivalGroup);
+            enemies.push(rivalGroup);
+        }
+
+        function spawnWorkerDrone(targetEntity) {
+            const droneGroup = new THREE.Group();
+            droneGroup.position.copy(playerGroup.position);
+            droneGroup.position.y = 0.4;
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4488ff, metalness: 0.6, roughness: 0.3, emissive: 0x00aaff, emissiveIntensity: 0.2 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.0), bodyMat);
+            body.position.y = 0.3;
+            body.castShadow = true;
+            droneGroup.add(body);
+            droneGroup.bodyMat = bodyMat;
+
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 1.0 });
+            const wheelGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8);
+            wheelGeo.rotateZ(Math.PI / 2);
+
+            for (let x of [-0.45, 0.45]) {
+                for (let z of [-0.3, 0.3]) {
+                    const w = new THREE.Mesh(wheelGeo, wheelMat);
+                    w.position.set(x, 0.2, z);
+                    droneGroup.add(w);
+                }
+            }
+
+            droneGroup.state = 'moving_to';
+            droneGroup.target = targetEntity;
+            droneGroup.speed = 0.8;
+            droneGroup.harvestTimer = 0;
+
+            scene.add(droneGroup);
+            activeDrones.push(droneGroup);
+        }
+
+        function dropScrap(pos, count) {
+            const geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff8800, emissive: 0xffcc00, emissiveIntensity: 1.0 });
+
+            for (let i = 0; i < count; i++) {
+                const scrapItem = new THREE.Mesh(geo, mat);
+                scrapItem.position.copy(pos);
+                scrapItem.position.x += (Math.random() - 0.5) * 8;
+                scrapItem.position.z += (Math.random() - 0.5) * 8;
+                scrapItem.position.y = 0.5;
+
+                scrapItem.value = Math.floor(Math.random() * 4) + 3;
+                scrapItem.targeted = false;
+                scrapItem.isDropped = true;
+
+                scrapItem.rotation.set(Math.random(), Math.random(), Math.random());
+                scrapItem.castShadow = true;
+
+                scene.add(scrapItem);
+                droppedScraps.push(scrapItem);
+            }
+        }
+
+        function createExplosion(position, colorHex) {
+            for (let i = 0; i < 15; i++) {
+                const geo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+                const particle = new THREE.Mesh(geo, mat);
+                particle.position.copy(position);
+                particle.velocity = new THREE.Vector3((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+                particle.life = 1.0;
+                scene.add(particle);
+                particles.push(particle);
+            }
+        }
+
+        function createDustTrail(x, z) {
+            if (Math.random() > 0.4) return;
+            const geo = new THREE.SphereGeometry(0.5, 4, 4);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x93886b, transparent: true, opacity: 0.6 });
+            const dust = new THREE.Mesh(geo, mat);
+            dust.position.set(x + (Math.random() - 0.5) * 5, 0.5, z + (Math.random() - 0.5) * 5);
+            dust.life = 1.0;
+            dust.velocity = new THREE.Vector3((Math.random() - 0.5) * 0.2, Math.random() * 0.2 + 0.1, (Math.random() - 0.5) * 0.2);
+            scene.add(dust);
+            dustTrailParticles.push(dust);
+        }
+
+        function fireBulletFromTurret(turret, targetPosition, isPlayerBullet = true) {
+            const gunPos = new THREE.Vector3();
+            turret.mesh.getWorldPosition(gunPos);
+            gunPos.y += 0.5;
+
+            const direction = new THREE.Vector3().subVectors(targetPosition, gunPos).normalize();
+            const bulletGroup = new THREE.Group();
+            bulletGroup.position.copy(gunPos);
+            bulletGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+
+            bulletGroup.isPlayerBullet = isPlayerBullet;
+
+            if (isPlayerBullet) {
+                if (turret.type === 'missile') {
+                    const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
+                    const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.0, 1.5, 8), new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
+                    trail.translateY(-0.75).rotateX(Math.PI / 2);
+                    bulletGroup.add(head, trail);
+                    bulletGroup.velocity = direction.clone().multiplyScalar(1.5);
+                    bulletGroup.isMissile = true;
+                } else {
+                    const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
+                    const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.0, 3.0, 8), new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending }));
+                    trail.translateY(-1.5).rotateX(Math.PI / 2);
+                    bulletGroup.add(head, trail);
+                    bulletGroup.velocity = direction.clone().multiplyScalar(4.0);
+                }
+            } else {
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+                const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.0, 2.0, 8), new THREE.MeshBasicMaterial({ color: 0xff0055, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending }));
+                trail.translateY(-1.0).rotateX(Math.PI / 2);
+                bulletGroup.add(head, trail);
+                bulletGroup.velocity = direction.clone().multiplyScalar(2.0);
+            }
+
+            scene.add(bulletGroup);
+            bullets.push(bulletGroup);
+        }
+
+        function onKeyDown(event) {
+            const code = event.code;
+            if (code === 'KeyW' || code === 'ArrowUp') keys.w = true;
+            if (code === 'KeyA' || code === 'ArrowLeft') keys.a = true;
+            if (code === 'KeyS' || code === 'ArrowDown') keys.s = true;
+            if (code === 'KeyD' || code === 'ArrowRight') keys.d = true;
+
+            if (code === 'KeyR' && gameOver) resetGame();
+            if (code === 'KeyB' && !gameOver) window.toggleBuildMode();
+            if (code === 'KeyF') toggleCityMode();
+        }
+
+        function onKeyUp(event) {
+            const code = event.code;
+            if (code === 'KeyW' || code === 'ArrowUp') keys.w = false;
+            if (code === 'KeyA' || code === 'ArrowLeft') keys.a = false;
+            if (code === 'KeyS' || code === 'ArrowDown') keys.s = false;
+            if (code === 'KeyD' || code === 'ArrowRight') keys.d = false;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function resetGame() {
+            gameOver = false;
+            isStationary = false;
+            modeStatusEl.innerText = "MODE: MOBILE (DI CHUYỂN)";
+            modeStatusEl.classList.remove('mode-siege');
+
+            velocity.set(0, 0, 0);
+            calculateStats();
+            playerHealth = maxHealth;
+            score = 0;
+            kills = 0;
+            scrap = 60;
+            playerGroup.position.set(0, 0, 0);
+
+            while (enemies.length > 0) safeRemove(enemies[0], enemies);
+            while (bullets.length > 0) safeRemove(bullets[0], bullets);
+            while (particles.length > 0) safeRemove(particles[0], particles);
+            while (dustTrailParticles.length > 0) safeRemove(dustTrailParticles[0], dustTrailParticles);
+            while (droppedScraps.length > 0) safeRemove(droppedScraps[0], droppedScraps);
+            while (activeDrones.length > 0) safeRemove(activeDrones[0], activeDrones);
+            while (lasers.length > 0) safeRemove(lasers[0], lasers);
+
+            harvestables.forEach(h => {
+                if (h.parent) h.parent.remove(h);
+            });
+            harvestables = [];
+            if (environmentGroup) scene.remove(environmentGroup);
+            createEnvironment();
+
+            gameOverScreen.style.display = 'none';
+            updateHUD();
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            gameTime += 0.0015;
+            let daylightFactor = Math.sin(gameTime);
+            let isDay = daylightFactor > 0;
+            let lerpFactor = Math.max(0, Math.min(1, daylightFactor * 2));
+
+            scene.background.lerpColors(colorNight, colorDay, lerpFactor);
+            scene.fog.color.lerpColors(colorNight, colorDay, lerpFactor);
+
+            if (isDay) {
+                sunLight.color.setHex(0xffffff);
+                sunLight.intensity = Math.max(0.1, daylightFactor * 1.5);
+                hemiLight.intensity = 0.6 + daylightFactor * 0.4;
+                headLight.intensity = THREE.MathUtils.lerp(headLight.intensity, 0, 0.05);
+                deckLight.intensity = THREE.MathUtils.lerp(deckLight.intensity, 0, 0.05);
+            } else {
+                sunLight.color.setHex(0x4466aa);
+                sunLight.intensity = Math.max(0.1, -daylightFactor * 0.8);
+                hemiLight.intensity = 0.35;
+                headLight.intensity = THREE.MathUtils.lerp(headLight.intensity, 60, 0.05);
+                deckLight.intensity = THREE.MathUtils.lerp(deckLight.intensity, 2, 0.05);
+            }
+
+            // --- ANIMATION TRANSFORMER ---
+            if (isStationary) {
+                deployProgress = THREE.MathUtils.lerp(deployProgress, 1, 0.06);
+            } else {
+                deployProgress = THREE.MathUtils.lerp(deployProgress, 0, 0.06);
+            }
+
+            const p = playerGroup.parts;
+            if (p) {
+                // Xích xe xoay 90 độ và chống xuống tạo thành thành lũy
+                p.treadLGroup.rotation.z = deployProgress * (Math.PI / 2);
+                p.treadRGroup.rotation.z = deployProgress * (-Math.PI / 2);
+                p.treadLGroup.position.y = 0.75 - (deployProgress * 0.25);
+                p.treadRGroup.position.y = 0.75 - (deployProgress * 0.25);
+
+                // Cửa bảo vệ gập xuống làm dốc
+                p.shieldFGroup.rotation.x = deployProgress * (Math.PI / 2);
+                p.shieldBGroup.rotation.x = deployProgress * (-Math.PI / 2);
+
+                // Lõi xe (Chassis) nâng dần lên 
+                p.mainHull.position.y = 1.0 + (deployProgress * 1.5);
+                deckGroup.position.y = 1.6 + (deployProgress * 1.5);
+
+                // Tắt engine khi cắm trại
+                if (p.engine) p.engine.scale.setScalar(Math.max(0.001, 1 - deployProgress));
+
+                // --- HỆ THỐNG THÁP CANH THỦY LỰC ---
+                playerGroup.platforms.forEach(plat => {
+                    // Nếu có súng, vươn cao. Nếu không, nằm bẹp
+                    let targetY = plat.hasItem && isStationary ? plat.targetHeight : 0;
+
+                    let currentY = THREE.MathUtils.lerp(plat.group.position.y, targetY, 0.08);
+                    plat.group.position.y = currentY;
+
+                    if (currentY > 0.01) {
+                        plat.pillar.visible = true;
+                        plat.pillar.scale.setScalar(1);
+                        plat.pillar.scale.y = currentY; // Cột dài ra nối liền thân xe và bệ súng
+                    } else {
+                        plat.pillar.visible = false;
+                    }
+                });
+            }
+
+            // --- HỆ THỐNG VẬT LÝ XE (ACCELERATION) ---
+            if (!isBuildMode) {
+                if (!isStationary) {
+                    let forceX = 0, forceZ = 0;
+
+                    if (keys.w) forceZ -= acceleration;
+                    if (keys.s) forceZ += acceleration;
+                    if (keys.a) forceX -= acceleration;
+                    if (keys.d) forceX += acceleration;
+
+                    velocity.x += forceX;
+                    velocity.z += forceZ;
+
+                    // Lực cản để trượt xe
+                    velocity.multiplyScalar(friction);
+
+                    if (velocity.length() > maxSpeed) {
+                        velocity.setLength(maxSpeed);
+                    }
+
+                    playerGroup.position.x += velocity.x;
+                    playerGroup.position.z += velocity.z;
+
+                    // Điểm số tăng dựa trên quãng đường thực tế trượt được
+                    score += velocity.length() * 0.04;
+
+                    if (velocity.lengthSq() > 0.001) {
+                        const targetAngle = Math.atan2(velocity.x, velocity.z);
+                        let diff = targetAngle - playerBody.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        playerBody.rotation.y += diff * 0.15;
+
+                        // Xe xóc nhẹ theo độ lớn của vận tốc
+                        playerGroup.position.y = Math.abs(Math.sin(Date.now() * 0.01)) * (velocity.length() * 0.5);
+
+                        if (Math.random() < velocity.length()) {
+                            createDustTrail(playerGroup.position.x, playerGroup.position.z);
+                        }
+                    } else {
+                        playerGroup.position.y = THREE.MathUtils.lerp(playerGroup.position.y, 0, 0.1);
+                    }
+                } else {
+                    // Xe đang cắm trại: Phanh gấp, không cho di chuyển
+                    velocity.multiplyScalar(0.8);
+                    playerGroup.position.x += velocity.x;
+                    playerGroup.position.z += velocity.z;
+                    playerGroup.position.y = THREE.MathUtils.lerp(playerGroup.position.y, 0, 0.1);
+                }
+
+                // Camera mượt mà bám theo
+                const targetCamPos = new THREE.Vector3(playerGroup.position.x, playerGroup.position.y + 45, playerGroup.position.z + 40);
+                camera.position.lerp(targetCamPos, 0.1);
+                camera.lookAt(playerGroup.position);
+
+                sunLight.position.x = playerGroup.position.x + 60;
+                sunLight.position.y = 80;
+                sunLight.position.z = playerGroup.position.z - 40;
+                sunLight.target.position.copy(playerGroup.position);
+                sunLight.target.updateMatrixWorld();
+
+                gridHelper.position.x = playerGroup.position.x;
+                gridHelper.position.z = playerGroup.position.z;
+
+                playerGroup.updateMatrixWorld(true);
+
+                // --- MÁY BẮN ---
+                activeTurrets.forEach(turret => {
+                    let nearestEnemy = null;
+                    let minDist = isStationary ? 160 : 120; // Cắm trại bắn xa hơn!
+                    const turretWorldPos = turret.mesh.getWorldPosition(new THREE.Vector3());
+
+                    enemies.forEach(e => {
+                        const dist = turretWorldPos.distanceTo(e.position);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestEnemy = e;
+                        }
+                    });
+
+                    if (nearestEnemy) {
+                        turret.mesh.lookAt(nearestEnemy.position);
+                        const fireDelay = turret.type === 'machine_gun' ? 150 : 1000;
+                        if (Date.now() - turret.lastShotTime > fireDelay) {
+                            fireBulletFromTurret(turret, nearestEnemy.position, true);
+                            turret.lastShotTime = Date.now();
+                        }
+                    } else {
+                        turret.mesh.quaternion.slerp(new THREE.Quaternion(), 0.1);
+                    }
+                });
+
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const e = enemies[i];
+                    const distToPlayer = e.position.distanceTo(playerGroup.position);
+                    const aggroRange = 150;
+                    const attackRange = isStationary ? 90 : 80;
+
+                    if (distToPlayer < aggroRange) {
+                        e.state = 'chase';
+                        e.eyeMat.emissiveIntensity = 5.0;
+
+                        const dirToPlayer = new THREE.Vector3().subVectors(playerGroup.position, e.position).normalize();
+                        const targetAngle = Math.atan2(dirToPlayer.x, dirToPlayer.z);
+
+                        let diff = targetAngle - e.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        e.rotation.y += diff * 0.08;
+
+                        if (distToPlayer > attackRange) {
+                            e.position.x += Math.sin(e.rotation.y) * e.speed;
+                            e.position.z += Math.cos(e.rotation.y) * e.speed;
+                            createDustTrail(e.position.x, e.position.z);
+                            e.position.y = Math.abs(Math.sin(Date.now() * 0.01 + i)) * 0.2;
+                        } else {
+                            e.position.y = 0;
+                        }
+
+                        e.turrets.forEach(turret => {
+                            turret.mesh.lookAt(playerGroup.position);
+                            if (Date.now() - turret.lastShotTime > 1500) {
+                                fireBulletFromTurret(turret, playerGroup.position, false);
+                                turret.lastShotTime = Date.now();
+                            }
+                        });
+
+                    } else {
+                        e.state = 'wander';
+                        e.eyeMat.emissiveIntensity = 1.0;
+
+                        if (Date.now() > e.changeDirTime) {
+                            e.targetAngle = Math.random() * Math.PI * 2;
+                            e.changeDirTime = Date.now() + 2000 + Math.random() * 3000;
+                        }
+
+                        let diff = e.targetAngle - e.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        e.rotation.y += diff * 0.03;
+
+                        e.position.x += Math.sin(e.rotation.y) * (e.speed * 0.7);
+                        e.position.z += Math.cos(e.rotation.y) * (e.speed * 0.7);
+                        e.position.y = Math.abs(Math.sin(Date.now() * 0.01 + i)) * 0.2;
+                        createDustTrail(e.position.x, e.position.z);
+
+                        e.turrets.forEach(turret => {
+                            turret.mesh.quaternion.slerp(new THREE.Quaternion(), 0.05);
+                        });
+                    }
+
+                    for (let d of activeDrones) {
+                        if (e.position.distanceTo(d.position) < 3.0) {
+                            createExplosion(d.position, 0x00ccff);
+                            safeRemove(d, activeDrones);
+                            if (d.target) d.target.targeted = false;
+                            if (d.laserLine) scene.remove(d.laserLine);
+                        }
+                    }
+
+                    if (distToPlayer > 350) {
+                        safeRemove(e, enemies);
+                    }
+                }
+            }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.position.add(b.velocity);
+
+                if (b.position.distanceTo(playerGroup.position) > 250) {
+                    safeRemove(b, bullets);
+                    continue;
+                }
+
+                let hit = false;
+
+                if (b.isPlayerBullet) {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const e = enemies[j];
+                        if (b.position.distanceTo(e.position) < 5.0) {
+                            e.health -= b.isMissile ? 50 : 15;
+                            createExplosion(b.position, b.isMissile ? 0xff4400 : 0x00ffff);
+                            safeRemove(b, bullets);
+                            hit = true;
+
+                            if (e.health <= 0) {
+                                createExplosion(e.position, 0xffaa00);
+                                if (!isBuildMode) {
+                                    kills++;
+                                    score += 15;
+                                    dropScrap(e.position, Math.floor(Math.random() * 6) + 4);
+                                }
+                                safeRemove(e, enemies);
+                            }
+                            break;
+                        }
+                    }
+                    if (!hit && b.isMissile && Math.random() < 0.01 && b.position.distanceTo(playerGroup.position) > 100) {
+                        createExplosion(b.position, 0xff4400);
+                        safeRemove(b, bullets);
+                    }
+                }
+                else {
+                    const hitRange = isStationary ? 6.5 : 4.5;
+                    if (b.position.distanceTo(playerGroup.position) < hitRange) {
+                        playerHealth -= 15;
+                        createExplosion(b.position, 0xff0000);
+                        safeRemove(b, bullets);
+                        hit = true;
+                        if (playerHealth <= 0) {
+                            gameOver = true;
+                            gameOverScreen.style.display = 'block';
+                        }
+                    } else {
+                        for (let d = activeDrones.length - 1; d >= 0; d--) {
+                            if (b.position.distanceTo(activeDrones[d].position) < 1.5) {
+                                createExplosion(activeDrones[d].position, 0x00ccff);
+                                if (activeDrones[d].target) activeDrones[d].target.targeted = false;
+                                if (activeDrones[d].laserLine) scene.remove(activeDrones[d].laserLine);
+                                safeRemove(activeDrones[d], activeDrones);
+                                safeRemove(b, bullets);
+                                hit = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (activeDrones.length < MAX_DRONES) {
+                let target = null;
+                let minDist = isStationary ? 150 : 80;
+
+                droppedScraps.forEach(s => {
+                    if (!s.targeted && playerGroup.position.distanceTo(s.position) < minDist) {
+                        target = s;
+                    }
+                });
+
+                if (!target && isStationary) {
+                    harvestables.forEach(h => {
+                        if (h.health > 0 && !h.targeted && playerGroup.position.distanceTo(h.position) < minDist) {
+                            target = h;
+                        }
+                    });
+                }
+
+                if (target) {
+                    target.targeted = true;
+                    spawnWorkerDrone(target);
+                }
+            }
+
+            activeDrones.forEach((drone, index) => {
+                let bump = Math.abs(Math.sin(Date.now() * 0.03 + index)) * 0.08;
+
+                if (drone.state === 'moving_to') {
+                    if (!drone.target || (drone.target.health !== undefined && drone.target.health <= 0)) {
+                        drone.state = 'returning';
+                        if (drone.target) drone.target.targeted = false;
+                        return;
+                    }
+
+                    const dir = new THREE.Vector3().subVectors(drone.target.position, drone.position);
+                    const dist = dir.length();
+
+                    if (dist < 2.0) {
+                        if (drone.target.isDropped) {
+                            drone.carryingValue = drone.target.value;
+                            safeRemove(drone.target, droppedScraps);
+                            drone.state = 'returning';
+                            drone.bodyMat.emissiveIntensity = 3.0;
+                        } else {
+                            drone.state = 'harvesting';
+                        }
+                    } else {
+                        dir.normalize();
+                        drone.position.add(dir.multiplyScalar(drone.speed));
+                        drone.position.y = 0.4 + bump;
+
+                        const targetAngle = Math.atan2(dir.x, dir.z);
+                        let diff = targetAngle - drone.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        drone.rotation.y += diff * 0.2;
+                    }
+                }
+                else if (drone.state === 'harvesting') {
+                    if (!drone.target || drone.target.health <= 0) {
+                        drone.state = 'returning';
+                        if (drone.laserLine) scene.remove(drone.laserLine);
+                        return;
+                    }
+
+                    drone.lookAt(drone.target.position);
+                    drone.harvestTimer += 1;
+
+                    if (!drone.laserLine) {
+                        const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.8 });
+                        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+                        drone.laserLine = new THREE.Line(geometry, material);
+                        scene.add(drone.laserLine);
+                    }
+                    const startPoint = new THREE.Vector3().copy(drone.position).add(new THREE.Vector3(0, 0.5, 0));
+                    const endPoint = new THREE.Vector3().copy(drone.target.position).add(new THREE.Vector3(0, 1.0, 0));
+                    drone.laserLine.geometry.setFromPoints([startPoint, endPoint]);
+
+                    if (drone.harvestTimer % 5 === 0) createExplosion(endPoint, 0x00ffcc);
+
+                    if (drone.harvestTimer > 60) {
+                        drone.target.health -= 10;
+                        drone.harvestTimer = 0;
+
+                        if (drone.target.health <= 0) {
+                            createExplosion(drone.target.position, 0x8f7a66);
+                            drone.carryingValue = drone.target.value;
+                            safeRemove(drone.target, harvestables);
+                            drone.state = 'returning';
+                            scene.remove(drone.laserLine);
+                            drone.laserLine = null;
+                            drone.bodyMat.emissiveIntensity = 3.0;
+                        }
+                    }
+                }
+                else if (drone.state === 'returning') {
+                    const dir = new THREE.Vector3().subVectors(playerGroup.position, drone.position);
+                    const dist = dir.length();
+
+                    if (dist < 4.0) {
+                        if (drone.carryingValue) {
+                            scrap += drone.carryingValue;
+                            document.getElementById('ui-scrap-val').innerText = scrap;
+                        }
+                        safeRemove(drone, activeDrones);
+                    } else {
+                        dir.normalize();
+                        drone.position.add(dir.multiplyScalar(drone.speed));
+                        drone.position.y = 0.4 + bump;
+
+                        const targetAngle = Math.atan2(dir.x, dir.z);
+                        let diff = targetAngle - drone.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        drone.rotation.y += diff * 0.2;
+                    }
+                }
+            });
+
+            droppedScraps.forEach(s => {
+                s.rotation.x += 0.02;
+                s.rotation.y += 0.03;
+                s.material.emissiveIntensity = 1.0 + Math.abs(Math.sin(Date.now() * 0.005)) * 0.5;
+            });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.add(p.velocity);
+                p.life -= 0.04;
+                p.scale.setScalar(Math.max(0.01, p.life));
+                if (p.material && p.material.opacity !== undefined) {
+                    p.material.transparent = true;
+                    p.material.opacity = p.life;
+                }
+                if (p.life <= 0) safeRemove(p, particles);
+            }
+
+            for (let i = dustTrailParticles.length - 1; i >= 0; i--) {
+                const d = dustTrailParticles[i];
+                d.position.add(d.velocity);
+                d.life -= 0.02;
+                d.scale.setScalar(Math.max(0.01, d.life * 2));
+                d.material.opacity = d.life * 0.6;
+                if (d.life <= 0) safeRemove(d, dustTrailParticles);
+            }
+
+            for (let i = lasers.length - 1; i >= 0; i--) {
+                scene.remove(lasers[i]);
+                lasers.splice(i, 1);
+            }
+
+            updateHUD();
+        }
+
+        function updateHUD() {
+            healthFill.style.width = `${(Math.max(0, playerHealth) / maxHealth) * 100}%`;
+            hpValEl.innerText = Math.floor(playerHealth);
+            maxHpValEl.innerText = maxHealth;
+            scoreEl.innerText = Math.floor(score);
+            killsEl.innerText = kills;
+            scrapEl.innerText = scrap;
+            dronesValEl.innerText = activeDrones.length;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            update();
+            composer.render();
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+
+</html>

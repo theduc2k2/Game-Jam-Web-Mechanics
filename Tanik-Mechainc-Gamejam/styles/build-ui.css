@@ -1,0 +1,70 @@
+/* build-ui.css — Build mode styles */
+
+#build-ui {
+    display: none;
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-bg-panel);
+    z-index: 30;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border: 2px solid var(--color-primary);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(194, 153, 88, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+#build-overlay-text {
+    display: none;
+    position: absolute;
+    top: 15%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--color-accent);
+    text-shadow: var(--glow-accent);
+    pointer-events: none;
+    text-align: center;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.shop-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shop-item:hover {
+    transform: translateY(-5px);
+    background-color: #2a2a2a;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.shop-item.selected {
+    border-color: #ffcc00 !important;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+}
+
+.shop-item:active {
+    transform: translateY(-2px);
+}

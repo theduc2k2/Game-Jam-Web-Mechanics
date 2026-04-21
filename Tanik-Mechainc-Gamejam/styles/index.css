@@ -1,0 +1,61 @@
+/* index.css — Global styles & CSS custom properties (Design Tokens) */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+    /* Colors */
+    --color-primary: #c29958;
+    --color-accent: #00ffcc;
+    --color-danger: #ff4500;
+    --color-bg-dark: #050505;
+    --color-bg-panel: rgba(15, 10, 5, 0.95);
+    --color-siege: #ff3300;
+    --color-cyan: #00ffff;
+
+    /* Typography */
+    --font-mono: 'Share Tech Mono', monospace;
+
+    /* Glow effects */
+    --glow-primary: 0 0 10px rgba(194, 153, 88, 0.5);
+    --glow-accent: 0 0 15px rgba(0, 255, 204, 0.8);
+    --glow-danger: 0 0 20px rgba(255, 69, 0, 0.5);
+    --glow-cyan: 0 0 10px rgba(0, 255, 255, 0.8);
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--color-bg-dark);
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    overflow: hidden;
+    user-select: none;
+}
+
+#game-canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 5;
+}

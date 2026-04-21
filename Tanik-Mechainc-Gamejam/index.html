@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortal Engines 3D: Vanguard - Transformer City</title>
+    <meta name="description" content="Game Jam - Mortal Engines 3D: Vanguard - Build, Transform, and Defend your mobile fortress">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles/index.css">
+    <link rel="stylesheet" href="/styles/hud.css">
+    <link rel="stylesheet" href="/styles/build-ui.css">
+</head>
+
+<body>
+    <!-- HUD Overlay -->
+    <div class="hud">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 border-2 border-amber-500 flex items-center justify-center font-bold text-amber-400 bg-amber-900/40"
+                style="box-shadow: 0 0 10px rgba(245, 158, 11, 0.5)">V3</div>
+            <div>
+                <h1 class="text-lg font-bold text-amber-500 leading-none"
+                    style="text-shadow: 0 0 8px rgba(245, 158, 11, 0.5)">VANGUARD PLATFORM</h1>
+                <div id="mode-status">MODE: MOBILE (DI CHUYỂN)</div>
+            </div>
+        </div>
+        <div class="health-bar">
+            <div id="health-fill"></div>
+        </div>
+        <div class="text-xs text-amber-500 mt-1">HP: <span id="hp-val">100</span>/<span id="max-hp-val">100</span></div>
+
+        <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <span class="text-[10px] text-amber-800 font-bold">RIVAL CITIES SHREDDED</span>
+                <span class="text-sm font-bold text-white"><span id="kills">0</span> UNITS</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[10px] text-amber-800 font-bold">DRONES ACTIVE</span>
+                <span class="text-sm font-bold text-cyan-400"><span id="drones-val">0</span> / 3</span>
+            </div>
+            <div class="flex flex-col col-span-2">
+                <span class="text-[10px] text-amber-800 font-bold">TRAVEL DISTANCE</span>
+                <span class="text-sm font-bold text-white"><span id="score">0</span> KM</span>
+            </div>
+            <div class="flex flex-col col-span-2">
+                <span class="text-[10px] text-amber-800 font-bold">SCRAP (RESOURCES)</span>
+                <span class="text-2xl font-bold text-yellow-400"
+                    style="text-shadow: 0 0 10px rgba(250, 204, 21, 0.5)"><span id="scrap-val">60</span> ⚙️</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vignette Overlay -->
+    <div class="vignette"></div>
+
+    <!-- Controls Hint -->
+    <div class="controls-hint">
+        WASD: LÁI XE TĂNG TỐC | <span class="text-cyan-400 font-bold drop-shadow-md">[F]: BIẾN HÌNH CĂN CỨ</span> |
+        <span class="text-yellow-400 font-bold drop-shadow-md">[B]: LẮP RÁP 3D</span>
+    </div>
+
+    <!-- Build Mode Overlay -->
+    <div id="build-overlay-text">
+        ENGINEERING MODE<br>
+        <span class="text-sm text-zinc-100 font-normal">Click vào ô màu xanh lá để lắp đặt vũ khí/giáp</span>
+    </div>
+
+    <!-- Build UI Shop -->
+    <div id="build-ui">
+        <div class="text-xl font-bold text-yellow-400 mb-4 drop-shadow-lg">
+            SCRAP HIỆN CÓ: <span id="ui-scrap-val">60</span> ⚙️
+        </div>
+
+        <div class="flex gap-4" id="shop-container">
+            <div onclick="selectShopItem('machine_gun')" id="shop-machine_gun"
+                class="shop-item bg-zinc-900 border-2 border-zinc-700 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🔫</div>
+                <div class="text-sm font-bold text-white">Tháp Súng</div>
+                <div class="text-xs text-yellow-400 mt-1 font-bold">15 Scrap</div>
+                <div class="text-[10px] text-cyan-400 mt-1">Khóa mục tiêu nhanh</div>
+            </div>
+            <div onclick="selectShopItem('missile')" id="shop-missile"
+                class="shop-item bg-zinc-900 border-2 border-zinc-700 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🚀</div>
+                <div class="text-sm font-bold text-white">Bệ Tên Lửa</div>
+                <div class="text-xs text-yellow-400 mt-1 font-bold">30 Scrap</div>
+                <div class="text-[10px] text-red-400 mt-1">Sát thương bùng nổ</div>
+            </div>
+            <div onclick="selectShopItem('armor')" id="shop-armor"
+                class="shop-item bg-zinc-900 border-2 border-zinc-700 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🛡️</div>
+                <div class="text-sm font-bold text-white">Khối Giáp</div>
+                <div class="text-xs text-yellow-400 mt-1 font-bold">10 Scrap</div>
+                <div class="text-[10px] text-green-400 mt-1">+20 Máu Tối đa</div>
+            </div>
+            <div onclick="selectShopItem('remove')" id="shop-remove"
+                class="shop-item bg-red-950 border-2 border-red-800 p-4 rounded text-center w-32">
+                <div class="text-3xl mb-2 drop-shadow-lg">🗑️</div>
+                <div class="text-sm font-bold text-red-400">Tháo Dỡ</div>
+                <div class="text-[10px] text-zinc-400 mt-1">Hoàn lại 50% Scrap</div>
+            </div>
+        </div>
+
+        <button onclick="window.toggleBuildMode()"
+            class="mt-6 px-10 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded shadow-lg border-2 border-amber-400 transition"
+            style="box-shadow: 0 0 15px rgba(245, 158, 11, 0.4)">
+            [B] LƯU & CHIẾN ĐẤU
+        </button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over">
+        <h2 class="text-5xl font-bold text-red-600 mb-2" style="text-shadow: 0 0 20px red">VANGUARD DESTROYED</h2>
+        <p class="text-xl text-white mb-4">Mạng lưới phòng thủ thất bại.</p>
+        <p class="text-sm text-zinc-400 animate-pulse">Nhấn [R] để tái khởi động hệ thống</p>
+    </div>
+
+    <!-- 3D Canvas Container -->
+    <div id="game-canvas-container"></div>
+
+    <!-- Game Entry Point -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
