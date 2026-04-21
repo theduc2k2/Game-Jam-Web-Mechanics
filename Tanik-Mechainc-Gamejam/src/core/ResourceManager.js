@@ -42,7 +42,7 @@ class ResourceManagerClass {
         this.addMaterial('treeTrunk', new THREE.MeshStandardMaterial({ color: 0x6b4c3a, roughness: 0.9 }));
         this.addMaterial('treeLeaves', new THREE.MeshStandardMaterial({ color: 0x3d6e4b, roughness: 0.8 }));
         this.addMaterial('rock', new THREE.MeshStandardMaterial({ color: 0x7a8276, roughness: 0.9 }));
-        this.addMaterial('ground', new THREE.MeshStandardMaterial({ color: 0x7cb35c, roughness: 1.0, metalness: 0.0 }));
+        this.addMaterial('ground', new THREE.MeshStandardMaterial({ color: 0x0a0808, roughness: 1.0, metalness: 0.0 }));
         this.addMaterial('militaryGreen', new THREE.MeshStandardMaterial({ color: 0x4b5320, roughness: 0.8 }));
         this.addMaterial('fenceMat', new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.5 }));
         this.addMaterial('concrete', new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 }));

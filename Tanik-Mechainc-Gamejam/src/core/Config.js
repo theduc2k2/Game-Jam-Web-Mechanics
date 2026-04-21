@@ -85,18 +85,22 @@ export const ITEMS = {
 };
 
 export const BUILD_GRID = {
-    SIZE: 3,
-    SPACING: 1.4,
+    SIZE: 5,
+    SPACING: 1.5,
     INITIAL_DATA: [
-        [null, 'machine_gun', null],
-        ['armor', null, 'armor'],
-        [null, null, null]
+        [null, null, 'machine_gun', null, null],
+        [null, 'armor', null, 'armor', null],
+        ['machine_gun', null, null, null, 'machine_gun'],
+        [null, 'armor', null, 'armor', null],
+        [null, null, null, null, null]
     ],
     // Tower heights by distance from center
     HEIGHTS: {
-        0: 3.5,  // Center = tallest
-        1: 2.0,  // Cross adjacent
-        2: 1.0,  // Corners = shortest
+        0: 4.5,
+        1: 3.0,
+        2: 2.0,
+        3: 1.0,
+        4: 0.5
     }
 };
 
@@ -122,12 +126,12 @@ export const PARTICLES = {
 };
 
 export const DAYNIGHT = {
-    SPEED: 0.0015,
+    SPEED: 0.0008,
     INITIAL_TIME: Math.PI / 4,
-    DAY_COLOR: 0x87CEEB,
+    DAY_COLOR: 0x121a2e,
     NIGHT_COLOR: 0x050510,
-    FOG_NEAR: 120,
-    FOG_FAR: 350,
+    FOG_NEAR: 100,
+    FOG_FAR: 280,
 };
 
 export const RENDERING = {

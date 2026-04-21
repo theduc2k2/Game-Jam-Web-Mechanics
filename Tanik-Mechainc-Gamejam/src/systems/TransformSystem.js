@@ -29,91 +29,52 @@ export class TransformSystem {
         const parts = this.player.parts;
         if (!parts) return;
 
-        // --- Stage 1: Stabilization & Expansion (dp 0.0 - 0.4) ---
-        const s1 = Math.max(0, Math.min(1, dp / 0.4));
+        // Handle base components
+        if (parts.treadL) {
+            parts.treadL.position.x = THREE.MathUtils.lerp(-4.5, -6.5, dp);
+            parts.treadR.position.x = THREE.MathUtils.lerp(4.5, 6.5, dp);
 
-        // Treads slide out aggressively to widen the base
-        parts.treadLGroup.position.x = -2.3 - (s1 * 4.5);
-        parts.treadRGroup.position.x = 2.3 + (s1 * 4.5);
-        parts.treadLGroup.rotation.z = s1 * -(Math.PI / 2);
-        parts.treadRGroup.rotation.z = s1 * (Math.PI / 2);
-        parts.treadLGroup.position.y = 0.75 - (s1 * 0.25);
-        parts.treadRGroup.position.y = 0.75 - (s1 * 0.25);
+            parts.mainHull.position.y = THREE.MathUtils.lerp(1.0, 2.5, dp);
+            this.player.deckGroup.position.y = parts.mainHull.position.y + 0.75; 
 
-        // Shields unfold to become ground ramps
-        parts.shieldFGroup.rotation.x = s1 * (Math.PI / 1.5);
-        parts.shieldBGroup.rotation.x = s1 * -(Math.PI / 1.5);
-        parts.shieldFGroup.position.y = 1.5 - (s1 * 1.0);
-        parts.shieldBGroup.position.y = 1.5 - (s1 * 1.0);
-        parts.shieldFGroup.position.z = -2.3 - (s1 * 2.0);
-        parts.shieldBGroup.position.z = 2.3 + (s1 * 2.0);
+            const stabScale = THREE.MathUtils.lerp(0.001, 1.0, dp);
+            parts.stabF.scale.setScalar(stabScale);
+            parts.stabB.scale.setScalar(stabScale);
+            parts.stabF.position.set(0, 0.5, THREE.MathUtils.lerp(0, 5.5, dp));
+            parts.stabB.position.set(0, 0.5, THREE.MathUtils.lerp(0, -5.5, dp));
 
-        // Main Hull sinks for stability
-        parts.mainHull.position.y = 1.0 - (s1 * 0.5);
-        this.player.deckGroup.position.y = 1.6 - (s1 * 0.5);
-
-        // --- Stage 2: Perimeter Deployment (dp 0.4 - 0.7) ---
-        const s2 = Math.max(0, Math.min(1, (dp - 0.4) / 0.3));
-
-        if (parts.fenceSides) {
-            parts.fenceSides.forEach((side, i) => {
-                // Slide out fence sides to form a large perimeter
-                const dist = 6.0 + (s2 * 10.0);
-                side.position.z = dist;
-                side.scale.setScalar(Math.max(0.001, s2));
+            parts.towers.forEach((t, i) => {
+                const signX = (i % 2 === 0) ? 1 : -1;
+                const signZ = (i < 2) ? 1 : -1;
+                t.position.set(
+                    THREE.MathUtils.lerp(0, signX * 4.5, dp),
+                    THREE.MathUtils.lerp(1.0, 1.5, dp),
+                    THREE.MathUtils.lerp(0, signZ * 4.5, dp)
+                );
+                t.scale.setScalar(stabScale);
             });
-        }
 
-        // --- Stage 3: Interior Logistics (dp 0.6 - 0.9) ---
-        const s3 = Math.max(0, Math.min(1, (dp - 0.6) / 0.3));
+            parts.basePlat.scale.set(stabScale, 1, stabScale);
+            parts.basePlat.position.y = THREE.MathUtils.lerp(1.0, 0.25, dp);
 
-        if (parts.detailParts) {
-            parts.detailParts.forEach(detail => {
-                if (!detail.isRadar) {
-                    // Rise from underground
-                    const targetY = detail.finalY || 0.5;
-                    detail.mesh.position.y = -2 + (s3 * (targetY + 2));
-                    detail.mesh.scale.setScalar(Math.max(0.001, s3));
-                }
-            });
-        }
-
-        // --- Stage 4: Command & Comms (dp 0.8 - 1.0) ---
-        const s4 = Math.max(0, Math.min(1, (dp - 0.8) / 0.2));
-
-        if (parts.radarGroup) {
-            parts.radarGroup.scale.setScalar(s4);
-            parts.radarGroup.position.y = 0.5 + (s4 * 1.5);
-            // Random scanning rotation
-            parts.radarGroup.rotation.y += 0.02 * s4;
-        }
-
-        // Stabilizer legs deploy during Stage 1
-        if (parts.stabilizers) {
-            parts.stabilizers.forEach((leg, i) => {
-                const isFront = i < 2;
-                const isLeft = i % 2 === 0;
-
-                leg.rotation.z = s1 * (isLeft ? (Math.PI / 2.2) : -(Math.PI / 2.2));
-                leg.rotation.x = s1 * (isFront ? -(Math.PI / 3) : (Math.PI / 3));
-                leg.scale.y = 1 + (s1 * 1.2);
-                leg.position.y = 1.0 - (s1 * 1.0);
-            });
+            if (parts.engine) parts.engine.scale.setScalar(Math.max(0.001, 1 - dp));
         }
 
         // Hydraulic platform towers extend (Final polish)
-        this.player.platforms.forEach(plat => {
-            const targetY = plat.hasItem && GameState.isStationary ? plat.targetHeight : 0;
-            const currentY = THREE.MathUtils.lerp(plat.group.position.y, targetY, TRANSFORM_ANIM.PLATFORM_LERP);
-            plat.group.position.y = currentY;
+        if (this.player.platforms) {
+            this.player.platforms.forEach(plat => {
+                const targetY = plat.hasItem && GameState.isStationary ? plat.targetHeight : 0;
+                const currentY = THREE.MathUtils.lerp(plat.group.position.y, targetY, TRANSFORM_ANIM.PLATFORM_LERP);
+                plat.group.position.y = currentY;
 
-            if (currentY > 0.01) {
-                plat.pillar.visible = true;
-                plat.pillar.scale.setScalar(1);
-                plat.pillar.scale.y = currentY;
-            } else {
-                plat.pillar.visible = false;
-            }
-        });
+                if (currentY > 0.01) {
+                    plat.pillar.visible = true;
+                    plat.pillar.scale.setScalar(1);
+                    plat.pillar.scale.y = currentY;
+                } else {
+                    plat.pillar.visible = false;
+                }
+            });
+        }
     }
 }

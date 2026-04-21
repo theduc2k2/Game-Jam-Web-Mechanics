@@ -44,9 +44,11 @@ export class CameraSystem {
         this.sunLight.target.position.copy(playerPos);
         this.sunLight.target.updateMatrixWorld();
 
-        // Grid follows player
-        this.gridHelper.position.x = playerPos.x;
-        this.gridHelper.position.z = playerPos.z;
+        // Grid follows player (if visible)
+        if (this.gridHelper && this.gridHelper.visible) {
+            this.gridHelper.position.x = playerPos.x;
+            this.gridHelper.position.z = playerPos.z;
+        }
 
         // Update matrices
         this.player.group.updateMatrixWorld(true);

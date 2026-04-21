@@ -41,6 +41,7 @@ export class UIManager {
         });
 
         EventBus.on(Events.BUILD_ENTER, () => {
+            if (GameState.sceneState === 'GARAGE') return;
             document.getElementById('build-ui').style.display = 'flex';
             document.getElementById('build-overlay-text').style.display = 'block';
             document.getElementById('ui-scrap-val').innerText = GameState.scrap;

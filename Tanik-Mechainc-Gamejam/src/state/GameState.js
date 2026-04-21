@@ -27,6 +27,9 @@ class GameStateClass {
         this.gameOver = false;
         this.isBuildMode = false;
         this.isStationary = false;
+        
+        // Master Scene State: 'GARAGE' or 'COMBAT'
+        this.sceneState = 'GARAGE';
 
         // Transformer deploy animation progress [0..1]
         this.deployProgress = 0;
@@ -139,6 +142,16 @@ class GameStateClass {
 
         EventBus.emit(Events.PLAYER_MODE_CHANGE, { isStationary: this.isStationary });
         return this.isStationary;
+    }
+
+    /**
+     * Transition from GARAGE to COMBAT
+     */
+    startCombat() {
+        if (this.sceneState === 'GARAGE') {
+            this.sceneState = 'COMBAT';
+            EventBus.emit('scene:combat');
+        }
     }
 }
 

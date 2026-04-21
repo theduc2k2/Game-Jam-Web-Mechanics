@@ -27,6 +27,22 @@ export class DayNightSystem {
      * Update lighting based on time
      */
     update(dt) {
+        if (GameState.sceneState === 'GARAGE') {
+            // Keep background and fog neutral dark
+            this.scene.background.setHex(0x0a0a0a);
+            this.scene.fog.color.setHex(0x0a0a0a);
+
+            // Static bright lighting
+            this.sunLight.color.setHex(0xffffff);
+            this.sunLight.intensity = 1.0;
+            this.hemiLight.intensity = 0.8;
+            
+            // Subtle directional/headlight to light up the grid
+            this.headLight.intensity = 20;
+            this.deckLight.intensity = 5;
+            return;
+        }
+
         this.gameTime += DAYNIGHT.SPEED;
         const daylightFactor = Math.sin(this.gameTime);
         const isDay = daylightFactor > 0;

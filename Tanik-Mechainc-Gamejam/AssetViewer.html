@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanguard - Asset Gallery</title>
+    <meta name="description" content="View all 3D assets">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles/index.css">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; }
+        #canvas-container { width: 100%; height: 100%; }
+        #loading-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); color: cyan; font-family: monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 50; transition: opacity 0.5s;
+        }
+        #tooltip {
+            position: absolute; padding: 10px 15px; background: rgba(0,0,0,0.9);
+            border: 1px solid #00ffff; border-radius: 4px; color: white; font-family: monospace;
+            pointer-events: none; display: none; z-index: 10; font-size: 16px; font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+            transform: translate(-50%, -150%);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-overlay">
+        <h2 class="text-3xl mb-4 font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">ASSET WAREHOUSE INITIALIZING</h2>
+        <div id="loading-text" class="text-xl animate-pulse">Scanning Data...</div>
+    </div>
+
+    <!-- Hover Tooltip -->
+    <div id="tooltip"></div>
+
+    <!-- UI Overlay -->
+    <a href="/index.html" class="absolute top-4 left-4 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded shadow-lg border-2 border-amber-400 z-10 transition shadow-amber-500/50">
+        ⬅ QUAY LẠI GAME
+    </a>
+    
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-zinc-900 border border-cyan-800 p-2 text-zinc-300 font-mono text-sm z-10 rounded shadow-lg shadow-cyan-900/40 flex space-x-2">
+        <button id="btn-cat-all" class="category-btn bg-cyan-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Tất Cả</button>
+        <button id="btn-cat-weapons" class="category-btn bg-zinc-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Vũ Khí</button>
+        <button id="btn-cat-base" class="category-btn bg-zinc-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Căn Cứ</button>
+        <button id="btn-cat-vehicles" class="category-btn bg-zinc-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Xe Cộ</button>
+        <button id="btn-cat-terrain" class="category-btn bg-zinc-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Địa Hình</button>
+        <button id="btn-cat-props" class="category-btn bg-zinc-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Vật Thể</button>
+        <button id="btn-cat-characters" class="category-btn bg-zinc-700 px-3 py-1 text-white rounded hover:bg-cyan-600 transition">Nhân Vật</button>
+    </div>
+    
+    <div class="absolute top-4 right-4 bg-zinc-900 border border-cyan-800 p-4 text-zinc-300 font-mono text-sm z-10 rounded shadow-lg shadow-cyan-900/40 pointer-events-none opacity-90">
+        <div class="font-bold text-cyan-400 mb-2 border-b border-cyan-800 pb-1">HUD CONTROLS:</div>
+        <table class="border-collapse">
+            <tr><td class="pr-3 text-cyan-600">L-Click + Kéo:</td><td>Xoay Camera</td></tr>
+            <tr><td class="pr-3 text-cyan-600">R-Click + Kéo:</td><td>Di chuyển Camera</td></tr>
+            <tr><td class="pr-3 text-cyan-600">Cuộn Chuột:</td><td>Zoom</td></tr>
+            <tr><td class="pr-3 text-cyan-600">Trỏ chuột:</td><td>Tên Asset</td></tr>
+        </table>
+    </div>
+
+    <!-- Game Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Logic -->
+    <script type="module" src="/src/assetViewer.js"></script>
+</body>
+
+</html>

@@ -5,9 +5,31 @@
 
 import * as THREE from 'three';
 import { ResourceManager } from '../core/ResourceManager.js';
+import { ModelManager } from '../core/ModelManager.js';
 import { BUILD_GRID } from '../core/Config.js';
 
 export class PlayerFactory {
+    static _autoFitModelToCell(wrapperGroup, rawModel) {
+        if (!rawModel) return;
+        
+        const box = new THREE.Box3().setFromObject(rawModel);
+        const size = box.getSize(new THREE.Vector3());
+        if (size.x === 0 || size.y === 0 || size.z === 0) {
+            wrapperGroup.add(rawModel);
+            return;
+        }
+
+        const center = box.getCenter(new THREE.Vector3());
+
+        // Reposition model inside wrapper so its bottom is sitting on Y=0 and it centers X,Z
+        rawModel.position.set(-center.x + rawModel.position.x, -box.min.y + rawModel.position.y, -center.z + rawModel.position.z);
+
+        // Preserve authentic proportions instead of aggressively stretching/shrinking everything to maxSize
+        wrapperGroup.scale.setScalar(1.0);
+
+        wrapperGroup.add(rawModel);
+    }
+
     /**
      * Create the full player entity
      * @returns {Object} player data { group, body, deckGroup, platforms, parts, velocity }
@@ -20,143 +42,61 @@ export class PlayerFactory {
         playerGroup.add(playerBody);
 
         // 1. Main hull (center body)
-        const mainHull = new THREE.Mesh(RM.getGeometry('mainHull'), RM.getMaterial('playerBody'));
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc97a4e, roughness: 0.8, metalness: 0.2 }); 
+        const treadMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.9, metalness: 0.5 }); 
+        
+        const mainHull = new THREE.Mesh(new THREE.BoxGeometry(7.5, 1.5, 7.5), bodyMat);
         mainHull.position.y = 1.0;
         mainHull.castShadow = true;
         mainHull.receiveShadow = true;
         playerBody.add(mainHull);
 
-        // 2. Tank treads (transformable — they rotate out in siege mode)
-        const treadLGroup = new THREE.Group();
-        treadLGroup.position.set(-2.3, 0.75, 0);
-        const treadRGroup = new THREE.Group();
-        treadRGroup.position.set(2.3, 0.75, 0);
+        // 2. Tank treads (spread wider to support 5x5 deck)
+        const treadsGroup = new THREE.Group();
+        playerBody.add(treadsGroup);
 
-        const treadL = new THREE.Mesh(RM.getGeometry('tread'), RM.getMaterial('mechMetal'));
-        treadL.position.set(-0.6, 0, 0);
+        const treadGeo = new THREE.BoxGeometry(1.5, 1.5, 8.5);
+        const treadL = new THREE.Mesh(treadGeo, treadMat);
+        treadL.position.set(-4.5, 0.75, 0);
         treadL.castShadow = true;
-        treadLGroup.add(treadL);
-
-        const treadR = new THREE.Mesh(RM.getGeometry('tread'), RM.getMaterial('mechMetal'));
-        treadR.position.set(0.6, 0, 0);
+        
+        const treadR = new THREE.Mesh(treadGeo, treadMat);
+        treadR.position.set(4.5, 0.75, 0);
         treadR.castShadow = true;
-        treadRGroup.add(treadR);
-        playerBody.add(treadLGroup, treadRGroup);
+        treadsGroup.add(treadL, treadR);
 
-        // 3. Front/rear shields (fold down as ramps in siege mode)
-        const shieldFGroup = new THREE.Group();
-        shieldFGroup.position.set(0, 1.5, -2.3);
-        const shieldF = new THREE.Mesh(RM.getGeometry('shield'), RM.getMaterial('mechMetal'));
-        shieldF.position.set(0, -0.5, -0.2);
-        shieldF.castShadow = true;
-        shieldFGroup.add(shieldF);
+        // 3. Stabilizers
+        const stabGeo = new THREE.BoxGeometry(4.0, 1.0, 2.0);
+        const stabMat = new THREE.MeshStandardMaterial({ color: 0x7b8b94, roughness: 0.6, metalness: 0.7 }); 
+        const stabF = new THREE.Mesh(stabGeo, stabMat);
+        const stabB = new THREE.Mesh(stabGeo, stabMat);
+        stabF.castShadow = true; stabB.castShadow = true;
+        playerBody.add(stabF, stabB);
 
-        const shieldBGroup = new THREE.Group();
-        shieldBGroup.position.set(0, 1.5, 2.3);
-        const shieldB = new THREE.Mesh(RM.getGeometry('shield'), RM.getMaterial('mechMetal'));
-        shieldB.position.set(0, -0.5, 0.2);
-        shieldB.castShadow = true;
-        shieldBGroup.add(shieldB);
-        playerBody.add(shieldFGroup, shieldBGroup);
+        // 4. Towers
+        const towers = [];
+        const towerGeo = new THREE.BoxGeometry(1.5, 3.5, 1.5);
+        for(let i=0; i<4; i++) {
+            const t = new THREE.Mesh(towerGeo, stabMat);
+            t.castShadow = true;
+            playerBody.add(t);
+            towers.push(t);
+        }
 
-        // 4. Engine core (glowing, scales to 0 in siege)
-        const engine = new THREE.Mesh(RM.getGeometry('engineCore'), RM.getMaterial('engine'));
-        engine.position.set(0, 0, -2.4);
+        // 5. Base Platform
+        const basePlatMat = new THREE.MeshStandardMaterial({ color: 0x666b6c, roughness: 0.9 });
+        const basePlat = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 9.5, 0.5, 8), basePlatMat);
+        basePlat.castShadow = true;
+        playerBody.add(basePlat);
+
+        // 6. Engine
+        const engineGeo = new THREE.BoxGeometry(2.5, 0.5, 0.2);
+        const engineMat = new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xff3300, emissiveIntensity: 2.0 });
+        const engine = new THREE.Mesh(engineGeo, engineMat);
+        engine.position.set(0, 0, -3.8); 
         mainHull.add(engine);
 
-        // 4.5 Stabilizer legs and Expanded Base Components
-        const stabilizers = [];
-        const legGeo = new THREE.BoxGeometry(0.6, 2.0, 0.6);
-        legGeo.translate(0, -1.0, 0); // Pivot at top
-        const legPositions = [
-            { x: -2.3, z: -2.3 },
-            { x: 2.3, z: -2.3 },
-            { x: -2.3, z: 2.3 },
-            { x: 2.3, z: 2.3 }
-        ];
-
-        legPositions.forEach(pos => {
-            const leg = new THREE.Mesh(legGeo, RM.getMaterial('mechMetal'));
-            leg.position.set(pos.x, 1.0, pos.z);
-            leg.castShadow = true;
-            playerBody.add(leg);
-            stabilizers.push(leg);
-        });
-
-        // 4.6 Perimeter Fence System
-        const perimeterGroup = new THREE.Group();
-        playerBody.add(perimeterGroup);
-        const fences = [];
-        const fenceCountPerSide = 3;
-        const fenceSideLength = 4.0;
-
-        const createFenceSide = (sideIndex) => {
-            const sideGroup = new THREE.Group();
-            perimeterGroup.add(sideGroup);
-
-            for (let i = 0; i < fenceCountPerSide; i++) {
-                const segment = new THREE.Group();
-                const pos = (i - 1) * fenceSideLength;
-                segment.position.set(pos, 0, 0);
-                sideGroup.add(segment);
-
-                const mesh = new THREE.Mesh(RM.getGeometry('fenceSegment'), RM.getMaterial('fenceMat'));
-                mesh.position.y = 0.6;
-                mesh.castShadow = true;
-                segment.add(mesh);
-
-                const post1 = new THREE.Mesh(RM.getGeometry('fencePost'), RM.getMaterial('mechMetal'));
-                post1.position.set(-2, 0.75, 0);
-                const post2 = new THREE.Mesh(RM.getGeometry('fencePost'), RM.getMaterial('mechMetal'));
-                post2.position.set(2, 0.75, 0);
-                segment.add(post1, post2);
-
-                fences.push(segment);
-            }
-
-            // Initial positioning tucked under
-            sideGroup.rotation.y = (Math.PI / 2) * sideIndex;
-            return sideGroup;
-        };
-
-        const fenceSides = [createFenceSide(0), createFenceSide(1), createFenceSide(2), createFenceSide(3)];
-
-        // 4.7 Base Ground Details (Houses, Tents, Containers)
-        const baseDetailGroup = new THREE.Group();
-        playerBody.add(baseDetailGroup);
-        const detailParts = [];
-
-        const addDetail = (geo, mat, x, z, ry, finalY = 0.5) => {
-            const mesh = new THREE.Mesh(RM.getGeometry(geo), RM.getMaterial(mat));
-            mesh.position.set(x, -2, z); // Hide below ground initially
-            mesh.rotation.y = ry;
-            mesh.castShadow = true;
-            baseDetailGroup.add(mesh);
-            detailParts.push({ mesh, finalY });
-            return mesh;
-        };
-
-        // Tents
-        addDetail('tentGeo', 'militaryGreen', -5, -5, 0);
-        addDetail('tentGeo', 'militaryGreen', -5, 0, 0.2);
-        addDetail('tentGeo', 'militaryGreen', -5, 5, -0.2);
-
-        // Containers
-        addDetail('containerGeo', 'militaryGreen', 5, -3, Math.PI / 2);
-        addDetail('containerGeo', 'mechMetal', 5, 0, Math.PI / 2);
-        addDetail('containerGeo', 'militaryGreen', 5, 3, Math.PI / 2);
-
-        // Command Radar Dish
-        const radarGroup = new THREE.Group();
-        radarGroup.position.set(-2, 1, -2);
-        radarGroup.scale.setScalar(0.001);
-        baseDetailGroup.add(radarGroup);
-        const radarBase = new THREE.Mesh(RM.getGeometry('turretBase'), RM.getMaterial('turretDarkMetal'));
-        const radarDish = new THREE.Mesh(RM.getGeometry('radarDish'), RM.getMaterial('turretMetal'));
-        radarDish.position.y = 0.5;
-        radarDish.rotation.x = -Math.PI / 6;
-        radarGroup.add(radarBase, radarDish);
-        detailParts.push({ mesh: radarGroup, isRadar: true });
+        playerGroup.parts = { mainHull, treadL, treadR, stabF, stabB, towers, basePlat, engine };
 
         // 5. Headlight
         const headLight = new THREE.SpotLight(0xffeedd, 0);
@@ -176,19 +116,20 @@ export class PlayerFactory {
 
         // 7. Deck group (holds turret platforms)
         const deckGroup = new THREE.Group();
-        deckGroup.position.set(0, 1.6, 0);
+        deckGroup.position.set(0, 1.75, -0.5);
         playerBody.add(deckGroup);
 
-        // 8. Build platforms (3x3 grid)
+        // 8. Build platforms (Dynamic Grid Size)
         const platforms = [];
         const buildPlanes = [];
         const buildPlanesMap = new Map();
         const spacing = BUILD_GRID.SPACING;
+        const centerIdx = Math.floor(BUILD_GRID.SIZE / 2);
 
         for (let y = 0; y < BUILD_GRID.SIZE; y++) {
             for (let x = 0; x < BUILD_GRID.SIZE; x++) {
-                const px = (x - 1) * spacing;
-                const pz = (y - 1) * spacing;
+                const px = (x - centerIdx) * spacing;
+                const pz = (y - centerIdx) * spacing;
 
                 const platGroup = new THREE.Group();
                 platGroup.position.set(px, 0, pz);
@@ -217,7 +158,7 @@ export class PlayerFactory {
                 buildPlanesMap.set(plane.uuid, { x, y });
 
                 // Tower height based on distance from center
-                const distFromCenter = Math.abs(x - 1) + Math.abs(y - 1);
+                const distFromCenter = Math.abs(x - centerIdx) + Math.abs(y - centerIdx);
                 const tHeight = BUILD_GRID.HEIGHTS[distFromCenter] || 1.0;
 
                 platforms.push({
@@ -235,12 +176,7 @@ export class PlayerFactory {
         }
 
         // Store references on group
-        playerGroup.platforms = platforms;
-        playerGroup.parts = {
-            mainHull, treadLGroup, treadRGroup,
-            shieldFGroup, shieldBGroup, engine,
-            stabilizers, fenceSides, detailParts, radarGroup
-        };
+        // Removed parts reassignment because it was done earlier
 
         return {
             group: playerGroup,
@@ -300,41 +236,68 @@ export class PlayerFactory {
                 const platInfo = player.platforms.find(p => p.gridX === x && p.gridY === y);
                 platInfo.hasItem = true;
 
-                if (item === 'armor') {
-                    const armor = new THREE.Mesh(RM.getGeometry('armorBlock'), RM.getMaterial('turretMetal'));
-                    armor.position.set(0, 0.7, 0);
-                    armor.castShadow = true;
-                    platInfo.group.add(armor);
-                } else {
-                    const turretGroup = new THREE.Group();
-                    turretGroup.position.set(0, 0.4, 0);
+                // Check if it's a pooled model first
+                let pooledModel = ModelManager.get(item);
+                
+                // Temporary fix: map some items if not found
+                if(!pooledModel && item === 'machine_gun') pooledModel = ModelManager.get('turret_single');
+                if(!pooledModel && item === 'missile') pooledModel = ModelManager.get('turret_double');
+                if(!pooledModel && item === 'armor') pooledModel = ModelManager.get('structure_closed');
 
-                    const base = new THREE.Mesh(RM.getGeometry('turretBase'), RM.getMaterial('turretDarkMetal'));
-                    base.castShadow = true;
-                    turretGroup.add(base);
+                if (pooledModel) {
+                    const wrapper = new THREE.Group();
+                    wrapper.position.set(0, 0.2, 0); // slightly above the pad
+                    
+                    // Insert with exact model proportions without scaling it down
+                    PlayerFactory._autoFitModelToCell(wrapper, pooledModel);
 
-                    if (item === 'machine_gun') {
-                        const gun1 = new THREE.Mesh(RM.getGeometry('machineGunBarrel'), RM.getMaterial('turretMetal'));
-                        gun1.position.set(-0.2, 0.4, 0.4);
-                        gun1.castShadow = true;
-                        const gun2 = new THREE.Mesh(RM.getGeometry('machineGunBarrel'), RM.getMaterial('turretMetal'));
-                        gun2.position.set(0.2, 0.4, 0.4);
-                        gun2.castShadow = true;
-                        turretGroup.add(gun1, gun2);
-                    } else if (item === 'missile') {
-                        const pod = new THREE.Mesh(RM.getGeometry('missilePodGeo'), RM.getMaterial('missilePod'));
-                        pod.position.set(0, 0.5, 0.2);
-                        pod.castShadow = true;
-                        turretGroup.add(pod);
+                    platInfo.group.add(wrapper);
+
+                    // If it's a turret-like object (based on name or metadata), track it
+                    if (item.includes('turret') || item.includes('gun') || item.includes('weapon') || item.includes('machine_gun') || item.includes('missile')) {
+                        activeTurrets.push({
+                            mesh: wrapper,
+                            type: item,
+                            lastShotTime: Date.now() + Math.random() * 500
+                        });
                     }
+                } else {
+                    // Fallback for legacy procedural items
+                    if (item === 'armor') {
+                        const armor = new THREE.Mesh(RM.getGeometry('armorBlock'), RM.getMaterial('turretMetal'));
+                        armor.position.set(0, 0.7, 0);
+                        armor.castShadow = true;
+                        platInfo.group.add(armor);
+                    } else {
+                        const turretGroup = new THREE.Group();
+                        turretGroup.position.set(0, 0.4, 0);
 
-                    platInfo.group.add(turretGroup);
+                        const base = new THREE.Mesh(RM.getGeometry('turretBase'), RM.getMaterial('turretDarkMetal'));
+                        base.castShadow = true;
+                        turretGroup.add(base);
 
-                    activeTurrets.push({
-                        mesh: turretGroup,
-                        type: item,
-                        lastShotTime: Date.now() + Math.random() * 500
-                    });
+                        if (item === 'machine_gun') {
+                            const gun1 = new THREE.Mesh(RM.getGeometry('machineGunBarrel'), RM.getMaterial('turretMetal'));
+                            gun1.position.set(-0.2, 0.4, 0.4);
+                            gun1.castShadow = true;
+                            const gun2 = new THREE.Mesh(RM.getGeometry('machineGunBarrel'), RM.getMaterial('turretMetal'));
+                            gun2.position.set(0.2, 0.4, 0.4);
+                            gun2.castShadow = true;
+                            turretGroup.add(gun1, gun2);
+                        } else if (item === 'missile') {
+                            const pod = new THREE.Mesh(RM.getGeometry('missilePodGeo'), RM.getMaterial('missilePod'));
+                            pod.position.set(0, 0.5, 0.2);
+                            pod.castShadow = true;
+                            turretGroup.add(pod);
+                        }
+                        platInfo.group.add(turretGroup);
+
+                        activeTurrets.push({
+                            mesh: turretGroup,
+                            type: item,
+                            lastShotTime: Date.now() + Math.random() * 500
+                        });
+                    }
                 }
             }
         }
